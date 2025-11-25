@@ -26,9 +26,17 @@ h1, h2, h3 {
     margin-bottom: 0.4rem;
 }
 
-/* Tab tiêu đề rõ hơn */
-button[role="tab"] {
+/* Canh giữa thanh tab + khoảng cách đều nhau */
+.stTabs [role="tablist"] {
+    justify-content: center;   /* căn giữa các tab */
+    gap: 1rem;                 /* khoảng cách giữa các tab */
+}
+
+/* Style cho từng tab */
+.stTabs [role="tab"] {
     font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;      /* bo tròn nhìn như pill */
 }
 
 /* Responsive cho màn hình nhỏ (tablet, mobile) */
@@ -38,7 +46,14 @@ button[role="tab"] {
         padding-right: 0.5rem;
     }
 
-    /* Các cột sẽ tự xếp chồng, mình chỉ đảm bảo input full width */
+    /* Cho phép tab xuống hàng và vẫn căn giữa */
+    .stTabs [role="tablist"] {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    /* Các input chiếm full width */
     input[type="number"],
     .stTextInput input,
     .stFileUploader,
@@ -50,6 +65,7 @@ button[role="tab"] {
 }
 </style>
 """
+
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # Nhận diện đầu mỗi Question trong file Word: "Question 1:", "Question 16:"
