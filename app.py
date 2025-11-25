@@ -17,7 +17,8 @@ QUESTION_START_PATTERN = re.compile(
 
 # Regex phụ
 ANSWER_PATTERN = re.compile(r"Answer\s*:\s*(.+)", re.IGNORECASE)
-OPTION_PATTERN = re.compile(r"^\s*([A-D])[\.\)]\s*(.+)", re.IGNORECASE)
+# Cho phép "A." hoặc "A ." hoặc "A)" đều được
+OPTION_PATTERN = re.compile(r"^\s*([A-D])\s*[\.\)]\s*(.+)", re.IGNORECASE)
 
 
 # ==========================
@@ -303,7 +304,7 @@ st.markdown(
 **Cấu trúc mỗi Test**
 
 - **Q1–13** → Nhóm 1: trắc nghiệm A/B/C/D, có `Answer: X`  
-- **Q14**   → Nhóm 2: sắp xếp thứ tự (chỉ có 4 dòng item, không intro)  
+- **Q14**   → Nhóm 2: sắp xếp thứ tự (chỉ có các dòng item, không intro trong file)  
 - **Q15**   → Nhóm 3: 4 câu con `... - woman/man/both`  
 - **Q16–17**→ Nhóm 4: mỗi Question có 2 câu con:
   `Câu 1: ... A/B/C ... Answer: X`  
@@ -340,81 +341,41 @@ with col2:
         key="file_uploader",
     )
 
+# Danh sách test đã tồn tại
+existing_tests = {
+    q["test_id"]
+    for group in st.session_state.question_bank.values()
+    for q in group
+}
+
 if uploaded_file is not None and st.button("📥 Xử lý & thêm vào ngân hàng"):
-    blocks = extract_raw_questions_from_docx(uploaded_file)
-
-    if not blocks:
-        st.error("Không tách được Question nào. Kiểm tra lại file.")
+    # Nếu test đã tồn tại thì báo lỗi và KHÔNG xử lý tiếp
+    if int(test_id) in existing_tests:
+        st.error(
+            f"🚫 Test {int(test_id)} đã tồn tại trong ngân hàng! "
+            "Hãy xóa Test này ở mục 3 trước khi upload lại."
+        )
     else:
-        added = 0
-        for idx, block in enumerate(blocks, start=1):
-            if idx > 17:
-                break
+        blocks = extract_raw_questions_from_docx(uploaded_file)
 
-            group = get_group_for_index(idx)
-            if group is None:
-                continue
+        if not blocks:
+            st.error("Không tách được Question nào. Kiểm tra lại file.")
+        else:
+            added = 0
+            for idx, block in enumerate(blocks, start=1):
+                if idx > 17:
+                    break
 
-            # ----- Nhóm 1: MCQ đơn -----
-            if group == 1:
-                parsed = parse_group1_mcq(block)
-                if not parsed:
-                    continue
-                item = parsed
-                st.session_state.question_bank[group].append(
-                    {
-                        "type": "mcq",
-                        "group": group,
-                        "test_id": int(test_id),
-                        "index_in_test": idx,
-                        "stem": item["stem"],
-                        "options": item["options"],
-                        "answer": item["answer"],
-                    }
-                )
-                added += 1
-
-            # ----- Nhóm 2: ORDER -----
-            elif group == 2:
-                parsed = parse_order_question(block)
-                if not parsed:
-                    continue
-                st.session_state.question_bank[group].append(
-                    {
-                        "type": "order",
-                        "group": group,
-                        "test_id": int(test_id),
-                        "index_in_test": idx,
-                        "prompt": parsed["prompt"],
-                        "items": parsed["items"],
-                    }
-                )
-                added += 1
-
-            # ----- Nhóm 3: GENDER BLOCK -----
-            elif group == 3:
-                parsed = parse_gender_block(block)
-                if not parsed:
-                    continue
-                st.session_state.question_bank[group].append(
-                    {
-                        "type": "gender_block",
-                        "group": group,
-                        "test_id": int(test_id),
-                        "index_in_test": idx,
-                        "items": parsed["items"],
-                    }
-                )
-                added += 1
-
-            # ----- Nhóm 4: MCQ 1 hoặc nhiều câu con -----
-            elif group == 4:
-                parsed = parse_group4_block(block)
-                if not parsed:
+                group = get_group_for_index(idx)
+                if group is None:
                     continue
 
-                if parsed["mode"] == "single":
-                    item = parsed["item"]
+                # ----- Nhóm 1: MCQ đơn -----
+                if group == 1:
+                    parsed = parse_group1_mcq(block)
+                    if not parsed:
+                        continue
+                    item = parsed
                     st.session_state.question_bank[group].append(
                         {
                             "type": "mcq",
@@ -426,20 +387,74 @@ if uploaded_file is not None and st.button("📥 Xử lý & thêm vào ngân hà
                             "answer": item["answer"],
                         }
                     )
-                else:  # multi
+                    added += 1
+
+                # ----- Nhóm 2: ORDER -----
+                elif group == 2:
+                    parsed = parse_order_question(block)
+                    if not parsed:
+                        continue
                     st.session_state.question_bank[group].append(
                         {
-                            "type": "mcq_multi",
+                            "type": "order",
                             "group": group,
                             "test_id": int(test_id),
                             "index_in_test": idx,
-                            "intro": parsed["intro"],
-                            "items": parsed["items"],  # list các câu con
+                            "prompt": parsed["prompt"],
+                            "items": parsed["items"],
                         }
                     )
-                added += 1
+                    added += 1
 
-        st.success(f"✅ Đã thêm {added} Question/block từ Test {int(test_id)} vào ngân hàng.")
+                # ----- Nhóm 3: GENDER BLOCK -----
+                elif group == 3:
+                    parsed = parse_gender_block(block)
+                    if not parsed:
+                        continue
+                    st.session_state.question_bank[group].append(
+                        {
+                            "type": "gender_block",
+                            "group": group,
+                            "test_id": int(test_id),
+                            "index_in_test": idx,
+                            "items": parsed["items"],
+                        }
+                    )
+                    added += 1
+
+                # ----- Nhóm 4: MCQ 1 hoặc nhiều câu con -----
+                elif group == 4:
+                    parsed = parse_group4_block(block)
+                    if not parsed:
+                        continue
+
+                    if parsed["mode"] == "single":
+                        item = parsed["item"]
+                        st.session_state.question_bank[group].append(
+                            {
+                                "type": "mcq",
+                                "group": group,
+                                "test_id": int(test_id),
+                                "index_in_test": idx,
+                                "stem": item["stem"],
+                                "options": item["options"],
+                                "answer": item["answer"],
+                            }
+                        )
+                    else:  # multi
+                        st.session_state.question_bank[group].append(
+                            {
+                                "type": "mcq_multi",
+                                "group": group,
+                                "test_id": int(test_id),
+                                "index_in_test": idx,
+                                "intro": parsed["intro"],
+                                "items": parsed["items"],  # list các câu con
+                            }
+                        )
+                    added += 1
+
+            st.success(f"✅ Đã thêm {added} Question/block từ Test {int(test_id)} vào ngân hàng.")
 
 
 # --------- 2. THỐNG KÊ ---------
@@ -457,9 +472,9 @@ st.markdown(
 """
 )
 
-# --------- 3. XEM LẠI TEST ĐÃ UPLOAD ---------
+# --------- 3. XEM LẠI & XÓA TEST ---------
 
-st.header("3️⃣ Xem lại Test đã upload")
+st.header("3️⃣ Xem lại Test đã upload / Xóa Test")
 
 # Lấy danh sách test_id hiện có
 available_tests = sorted(
@@ -475,15 +490,31 @@ else:
         format_func=lambda x: f"Test {int(x)}",
     )
 
-    # Đếm số câu theo nhóm cho Test này
-    per_group = {g: 0 for g in [1, 2, 3, 4]}
-    for g in [1, 2, 3, 4]:
-        per_group[g] = sum(
-            1 for q in st.session_state.question_bank[g] if q["test_id"] == selected_test
-        )
+    # Nút xóa toàn bộ Test
+    if st.button(f"🗑️ XÓA toàn bộ dữ liệu của Test {selected_test}"):
+        for g in [1, 2, 3, 4]:
+            st.session_state.question_bank[g] = [
+                q for q in st.session_state.question_bank[g] if q["test_id"] != selected_test
+            ]
+        st.success(f"Đã xóa toàn bộ dữ liệu của Test {selected_test} khỏi ngân hàng.")
 
-    st.markdown(
-        f"""
+    # Cập nhật lại danh sách sau khi xóa (tránh lỗi hiển thị)
+    available_tests = sorted(
+        {q["test_id"] for group in st.session_state.question_bank.values() for q in group}
+    )
+
+    if available_tests and selected_test in {
+        q["test_id"] for group in st.session_state.question_bank.values() for q in group
+    }:
+        # Đếm số câu theo nhóm cho Test này
+        per_group = {g: 0 for g in [1, 2, 3, 4]}
+        for g in [1, 2, 3, 4]:
+            per_group[g] = sum(
+                1 for q in st.session_state.question_bank[g] if q["test_id"] == selected_test
+            )
+
+        st.markdown(
+            f"""
 **Tổng quan Test {selected_test}:**
 
 - Nhóm 1 (Q1–13): {per_group[1]} câu  
@@ -491,50 +522,52 @@ else:
 - Nhóm 3 (Q15): {per_group[3]} block  
 - Nhóm 4 (Q16–17): {per_group[4]} block  
 """
-    )
+        )
 
-    # Hiển thị chi tiết theo nhóm
-    for g in [1, 2, 3, 4]:
-        st.subheader(f"Nhóm {g} của Test {selected_test}")
-        questions = [
-            q for q in st.session_state.question_bank[g] if q["test_id"] == selected_test
-        ]
-        questions.sort(key=lambda x: x["index_in_test"])
+        # Hiển thị chi tiết theo nhóm
+        for g in [1, 2, 3, 4]:
+            st.subheader(f"Nhóm {g} của Test {selected_test}")
+            questions = [
+                q for q in st.session_state.question_bank[g] if q["test_id"] == selected_test
+            ]
+            questions.sort(key=lambda x: x["index_in_test"])
 
-        if not questions:
-            st.write("❌ Chưa có câu nào của nhóm này.")
-            continue
+            if not questions:
+                st.write("❌ Chưa có câu nào của nhóm này.")
+                continue
 
-        for q in questions:
-            st.markdown(
-                f"**Question {q['index_in_test']} (Nhóm {q['group']} – kiểu {q['type']})**"
-            )
-            if q["type"] == "mcq":
-                st.text(q["stem"])
-                for lbl, txt in q["options"].items():
-                    st.write(f"{lbl}. {txt}")
-                st.write(f"_Answer: {q['answer']}_")
-            elif q["type"] == "mcq_multi":
-                if q["intro"]:
-                    st.text(q["intro"])
-                for j, item in enumerate(q["items"], start=1):
-                    st.write(f"{j}. {item['stem']}")
-                    for lbl, txt in item["options"].items():
-                        st.write(f"   {lbl}. {txt}")
-                    st.write(f"   Answer: {item['answer']}")
-            elif q["type"] == "order":
-                st.text(q["prompt"])
-                for j, item in enumerate(q["items"], start=1):
-                    st.write(f"{j}. {item}")
-            elif q["type"] == "gender_block":
-                for item in q["items"]:
-                    st.write(f"- {item['stem']}  →  {item['gender']}")
-            st.markdown("---")
+            for q in questions:
+                st.markdown(
+                    f"**Question {q['index_in_test']} (Nhóm {q['group']} – kiểu {q['type']})**"
+                )
+                if q["type"] == "mcq":
+                    st.text(q["stem"])
+                    for lbl, txt in q["options"].items():
+                        st.write(f"{lbl}. {txt}")
+                    st.write(f"_Answer: {q['answer']}_")
+                elif q["type"] == "mcq_multi":
+                    if q["intro"]:
+                        st.text(q["intro"])
+                    for j, item in enumerate(q["items"], start=1):
+                        st.write(f"{j}. {item['stem']}")
+                        for lbl, txt in item["options"].items():
+                            st.write(f"   {lbl}. {txt}")
+                        st.write(f"   Answer: {item['answer']}")
+                elif q["type"] == "order":
+                    st.text(q["prompt"])
+                    for j, item in enumerate(q["items"], start=1):
+                        st.write(f"{j}. {item}")
+                elif q["type"] == "gender_block":
+                    for item in q["items"]:
+                        st.write(f"- {item['stem']}  →  {item['gender']}")
+                st.markdown("---")
 
 
 # --------- 4. TẠO ĐỀ 17 CÂU ---------
 
 st.header("4️⃣ Tạo đề luyện tập 17 câu")
+
+counts = {g: len(st.session_state.question_bank[g]) for g in [1, 2, 3, 4]}
 
 can_generate = (
     counts[1] >= 13
