@@ -5,17 +5,20 @@ Tab Stats - Thống kê ngân hàng câu hỏi
 import streamlit as st
 
 
-def render_stats_tab(tab, counts):
+def render_stats_tab(tab, counts=None):
     """Render tab thống kê ngân hàng"""
     with tab:
         st.header("2️⃣ Thống kê ngân hàng câu hỏi")
 
+        # Luôn tính counts trực tiếp từ session_state để đảm bảo dữ liệu mới nhất
+        current_counts = {g: len(st.session_state.question_bank[g]) for g in [1, 2, 3, 4]}
+
         st.markdown(
             f"""
-- Nhóm 1 (Q1–13, MCQ): **{counts[1]}** câu  
-- Nhóm 2 (Q14, sắp xếp): **{counts[2]}** câu  
-- Nhóm 3 (Q15, woman/man/both): **{counts[3]}** block  
-- Nhóm 4 (Q16–17, multi MCQ): **{counts[4]}** block  
+- Nhóm 1 (Q1–13, MCQ): **{current_counts[1]}** câu  
+- Nhóm 2 (Q14, sắp xếp): **{current_counts[2]}** câu  
+- Nhóm 3 (Q15, woman/man/both): **{current_counts[3]}** block  
+- Nhóm 4 (Q16–17, multi MCQ): **{current_counts[4]}** block  
 """
         )
 

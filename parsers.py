@@ -104,9 +104,11 @@ def parse_group1_mcq(block: str):
     """
     lines = [l.strip() for l in block.splitlines() if l.strip()]
 
-    # Bỏ dòng "Question 1:" / "Question 5:" ...
+    # Chỉ bỏ phần "Question X:" prefix, GIỮ LẠI phần stem nếu nằm cùng dòng
     if lines and QUESTION_START_PATTERN.match(lines[0]):
-        lines = lines[1:]
+        lines[0] = QUESTION_START_PATTERN.sub("", lines[0]).strip()
+        if not lines[0]:  # Nếu dòng trống sau khi bỏ prefix thì xóa
+            lines = lines[1:]
 
     if not lines:
         return None
@@ -136,9 +138,11 @@ def parse_group4_block(block: str):
     if not lines:
         return None
 
-    # Bỏ dòng "Question 16:" / "Question 17:"
+    # Chỉ bỏ phần "Question X:" prefix, GIỮ LẠI phần intro nếu nằm cùng dòng
     if QUESTION_START_PATTERN.match(lines[0]):
-        lines = lines[1:]
+        lines[0] = QUESTION_START_PATTERN.sub("", lines[0]).strip()
+        if not lines[0]:  # Nếu dòng trống sau khi bỏ prefix thì xóa
+            lines = lines[1:]
 
     if not lines:
         return None
@@ -206,9 +210,11 @@ def parse_order_question(block: str):
     if not lines:
         return None
 
-    # Bỏ header "Question 14:"
+    # Chỉ bỏ phần "Question 14:" prefix, GIỮ LẠI phần nội dung nếu nằm cùng dòng
     if QUESTION_START_PATTERN.match(lines[0]):
-        lines = lines[1:]
+        lines[0] = QUESTION_START_PATTERN.sub("", lines[0]).strip()
+        if not lines[0]:  # Nếu dòng trống sau khi bỏ prefix thì xóa
+            lines = lines[1:]
 
     if not lines:
         return None

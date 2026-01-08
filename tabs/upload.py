@@ -11,6 +11,7 @@ from parsers import (
     parse_gender_block,
     parse_group4_block,
 )
+from storage import save_question_bank
 
 
 def process_single_test(uploaded_file, test_id, existing_tests):
@@ -198,5 +199,10 @@ def render_upload_tab(tab):
                     else:
                         st.error(r)
                 st.info(f"**Tổng cộng:** {success_count}/{len([d for d in upload_data if d['file']])} đề được xử lý thành công.")
+                
+                # Tự động lưu dữ liệu sau khi upload thành công
+                if success_count > 0:
+                    save_question_bank(st.session_state.question_bank)
+                    st.success("💾 Dữ liệu đã được lưu tự động!")
             else:
                 st.warning("⚠️ Chưa có file nào được chọn!")

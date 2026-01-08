@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Secrets (QUAN TRỌNG - không commit!)
+.streamlit/secrets.toml
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local data files (không deploy lên cloud)
+question_bank.json
+
+# Test files
+*.docx
+result.txt
+check_result.txt
+
+# OS files
+.DS_Store
+Thumbs.db

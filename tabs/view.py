@@ -3,6 +3,7 @@
 Tab View - Xem và xóa Test
 """
 import streamlit as st
+from storage import save_question_bank
 
 
 def render_view_tab(tab):
@@ -29,7 +30,10 @@ def render_view_tab(tab):
                     st.session_state.question_bank[g] = [
                         q for q in st.session_state.question_bank[g] if q["test_id"] != selected_test
                     ]
-                st.success(f"Đã xóa toàn bộ dữ liệu của Test {selected_test} khỏi ngân hàng.")
+                # Tự động lưu sau khi xóa
+                save_question_bank(st.session_state.question_bank)
+                st.success(f"Đã xóa và lưu dữ liệu của Test {selected_test}! 💾")
+                st.rerun()
 
             # Cập nhật lại danh sách
             available_tests = sorted(

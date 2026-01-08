@@ -6,16 +6,19 @@ import random
 import streamlit as st
 
 
-def render_exam_tab(tab, counts):
+def render_exam_tab(tab, counts=None):
     """Render tab tạo đề và luyện tập"""
     with tab:
         st.header("4️⃣ Tạo đề & Luyện tập")
 
+        # Luôn tính counts trực tiếp từ session_state để đảm bảo dữ liệu mới nhất
+        current_counts = {g: len(st.session_state.question_bank[g]) for g in [1, 2, 3, 4]}
+
         can_generate = (
-            counts[1] >= 13
-            and counts[2] >= 1
-            and counts[3] >= 1
-            and counts[4] >= 2
+            current_counts[1] >= 13
+            and current_counts[2] >= 1
+            and current_counts[3] >= 1
+            and current_counts[4] >= 2
         )
 
         if not can_generate:

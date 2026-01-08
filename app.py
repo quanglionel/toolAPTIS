@@ -12,8 +12,8 @@ from tabs import (
     render_stats_tab,
     render_view_tab,
     render_exam_tab,
-    render_backup_tab,
 )
+from storage import load_question_bank
 
 
 # ==========================
@@ -86,12 +86,8 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # ==========================
 
 if "question_bank" not in st.session_state:
-    st.session_state.question_bank = {
-        1: [],  # Nhóm 1: MCQ đơn (Q1-13)
-        2: [],  # Nhóm 2: ORDER (Q14)
-        3: [],  # Nhóm 3: GENDER BLOCK (Q15)
-        4: [],  # Nhóm 4: MCQ multi (Q16-17)
-    }
+    # Tự động tải dữ liệu đã lưu (nếu có)
+    st.session_state.question_bank = load_question_bank()
 
 if "current_exam" not in st.session_state:
     st.session_state.current_exam = []
@@ -104,14 +100,13 @@ if "current_exam" not in st.session_state:
 st.title("📚 Tool luyện đề từ nhiều Test (17 câu cố định thứ tự)")
 
 # Tạo các tab
-tab_info, tab_upload, tab_stats, tab_view, tab_exam, tab_backup = st.tabs(
+tab_info, tab_upload, tab_stats, tab_view, tab_exam = st.tabs(
     [
         "ℹ️ Information",
         "1️⃣ Upload Test",
         "2️⃣ Thống kê ngân hàng",
         "3️⃣ Xem / Xóa Test",
         "4️⃣ Tạo đề & Luyện tập",
-        "💾 Backup / Restore",
     ]
 )
 
@@ -124,4 +119,3 @@ render_upload_tab(tab_upload)
 render_stats_tab(tab_stats, counts)
 render_view_tab(tab_view)
 render_exam_tab(tab_exam, counts)
-render_backup_tab(tab_backup)
